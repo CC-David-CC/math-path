@@ -43,6 +43,7 @@ export class MathPathSession {
       current: null,
       related: null,
       skills,
+      hintsUsed: 0,
       stars: 0,
       firstTry: 0,
       attempts: 0,
@@ -82,6 +83,10 @@ export class MathPathSession {
     return this.#state.stars;
   }
 
+  get hintsUsed() {
+    return this.#state.hintsUsed;
+  }
+
   get state() {
     return clone(this.#state);
   }
@@ -95,7 +100,7 @@ export class MathPathSession {
       score: this.#state.firstTry * 10 + (this.#state.phase === "done" ? this.#state.stars * 100 : 0),
       firstTry: this.#state.firstTry,
       attempts: this.#state.attempts,
-      hintsUsed: 0,
+      hintsUsed: this.#state.hintsUsed,
       remaining: ROUTE_LENGTH - this.#state.index,
       objectives: this.#state.grade === 3
         ? ["Practice addition, subtraction, multiplication, and division facts."]
@@ -139,6 +144,17 @@ export class MathPathSession {
     return {correct: true, done: this.#state.phase === "done", stars: this.#state.stars};
   }
 
+  hint() {
+    if (this.#state.phase !== "present") throw Error("No current problem to hint.");
+    if (this.#state.current.choices.length <= 2) throw Error("No hint remains for this problem.");
+    const wrong = this.#state.current.choices.filter(value => value !== this.#state.current.answer);
+    const removed = this.#rng.pick(wrong);
+    this.#state.current.choices = this.#state.current.choices.filter(value => value !== removed);
+    this.#state.hintsUsed++;
+    this.#state.rngState = this.#rng.state;
+    return removed;
+  }
+
   continueAfterMiss() {
     if (this.#state.phase !== "miss-model" || !this.#state.related) throw Error("No missed problem is being explained.");
     this.#state.current = this.#state.related;
@@ -154,7 +170,7 @@ export class MathPathSession {
 
 const snapshotShape = {
   version: "", seed: "", rngState: 0, grade: 3, phase: "", route: [], index: 0,
-  current: null, related: null, skills: {}, stars: 0, firstTry: 0, attempts: 0, attemptsForCell: 0,
+  current: null, related: null, skills: {}, hintsUsed: 0, stars: 0, firstTry: 0, attempts: 0, attemptsForCell: 0,
 };
 
 function makeProblem(skill, grade, difficulty, rng) {
@@ -241,7 +257,8 @@ function validProblem(problem, grade) {
   if (!exactKeys(problem, ["skill", "left", "op", "right", "answer", "choices", "second"])) return false;
   if (!oneOf(problem.skill, skills) || !integer(problem.left, 0, 999) || !integer(problem.right, 0, 999) ||
       !integer(problem.answer, 0, 99999) || !uniqueNumbers(problem.choices, 0, 99999) ||
-      problem.choices.length !== 4 || problem.choices.filter(value => value === problem.answer).length !== 1) return false;
+      problem.choices.length < 2 || problem.choices.length > 4 ||
+      problem.choices.filter(value => value === problem.answer).length !== 1) return false;
   if (problem.skill === "add") return problem.second === null && problem.op === "+" && problem.left + problem.right === problem.answer;
   if (problem.skill === "subtract") return problem.second === null && problem.op === "−" && problem.left - problem.right === problem.answer;
   if (problem.skill === "multiply") return problem.second === null && problem.op === "×" && problem.left * problem.right === problem.answer;
@@ -262,6 +279,7 @@ function validatePayload(state) {
       !oneOf(state.phase, ["present", "miss-model", "done"]) ||
       !Array.isArray(state.route) || state.route.length !== ROUTE_LENGTH || !state.route.every(skill => oneOf(skill, skills)) ||
       !integer(state.index, 0, ROUTE_LENGTH) || !integer(state.stars, 0, 3) ||
+      !integer(state.hintsUsed, 0, 10000) ||
       !integer(state.firstTry, 0, ROUTE_LENGTH) || !integer(state.attempts, 0, 10000) ||
       !integer(state.attemptsForCell, 0, 1000) || !plainObject(state.skills)) {
     throw Error("Invalid Math Path snapshot.");

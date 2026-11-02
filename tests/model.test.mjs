@@ -62,6 +62,20 @@ test("grade-four mixed problems use two operations and produce a unique answer",
   assert.ok(found >= 12);
 });
 
+test("hints remove a wrong choice, are recorded, and never remove the answer", () => {
+  const session = new MathPathSession("hint", 3);
+  const answer = session.current.answer;
+  const removed = session.hint();
+  assert.notEqual(removed, answer);
+  assert.equal(session.current.choices.includes(removed), false);
+  assert.equal(session.current.choices.includes(answer), true);
+  assert.equal(session.hintsUsed, 1);
+  session.hint();
+  assert.equal(session.current.choices.length, 2);
+  assert.throws(() => session.hint());
+  assert.equal(session.report.hintsUsed, 2);
+});
+
 test("wrong answers explain, re-ask the same skill, and never advance", () => {
   const session = new MathPathSession("miss", 3);
   const index = session.index;
@@ -112,6 +126,8 @@ test("malformed and overlapping snapshots are rejected", () => {
     value => { value.payload.current.choices = [value.payload.current.answer, value.payload.current.answer, 2, 3]; },
     value => { value.payload.skills.add.correct = value.payload.skills.add.answered + 1; },
     value => { value.payload.index = 18; },
+    value => { value.payload.hintsUsed = -1; },
+    value => { value.payload.current.choices = [value.payload.current.answer]; },
   ]) {
     const broken = structuredClone(valid);
     mutate(broken);
