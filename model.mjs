@@ -12,7 +12,7 @@ import {
 import {makeLearningReport} from "../shared/experience.mjs";
 
 export const MATH_PATH_APP_ID = "math-path";
-export const MATH_PATH_CONTENT_VERSION = "math-path-core-1";
+export const MATH_PATH_CONTENT_VERSION = "math-path-core-2";
 const ROUTE_LENGTH = 18;
 const SKILLS = ["add", "subtract", "multiply", "divide"];
 const GRADE_4_SKILLS = [...SKILLS, "mixed"];
