@@ -37,6 +37,31 @@ test("generation stays bounded and every problem has one distinct answer", () =>
   }
 });
 
+test("grade-four mixed problems use two operations and produce a unique answer", () => {
+  let found = 0;
+  for (let seed = 0; seed < 60 && found < 12; seed++) {
+    const session = new MathPathSession(`mixed-${seed}`, 4);
+    while (session.phase !== "done" && found < 12) {
+      const problem = session.current;
+      if (problem.skill === "mixed") {
+        found++;
+        assert.ok(["×", "+"].includes(problem.op));
+        assert.ok(["×", "+"].includes(problem.second.op));
+        if (problem.op === "×" && problem.second.op === "+") {
+          assert.equal(problem.answer, problem.left * problem.right + problem.second.value);
+        } else {
+          assert.equal(problem.op, "+");
+          assert.equal(problem.second.op, "×");
+          assert.equal(problem.answer, problem.left + problem.right * problem.second.value);
+        }
+        assert.equal(new Set(problem.choices).size, 4);
+      }
+      session.answer(problem.answer);
+    }
+  }
+  assert.ok(found >= 12);
+});
+
 test("wrong answers explain, re-ask the same skill, and never advance", () => {
   const session = new MathPathSession("miss", 3);
   const index = session.index;

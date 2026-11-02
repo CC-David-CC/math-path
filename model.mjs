@@ -14,6 +14,7 @@ export const MATH_PATH_APP_ID = "math-path";
 export const MATH_PATH_CONTENT_VERSION = "math-path-core-1";
 const ROUTE_LENGTH = 18;
 const SKILLS = ["add", "subtract", "multiply", "divide"];
+const GRADE_4_SKILLS = [...SKILLS, "mixed"];
 
 export class MathPathSession {
   #state;
@@ -28,14 +29,15 @@ export class MathPathSession {
     }
     if (!oneOf(grade, [3, 4])) throw Error("Grade must be 3 or 4.");
     const rng = new SeededRng(seed);
-    const skills = Object.fromEntries(SKILLS.map(skill => [skill, {answered: 0, correct: 0, difficulty: 1}]));
+    const skillList = grade === 3 ? SKILLS : GRADE_4_SKILLS;
+    const skills = Object.fromEntries(skillList.map(skill => [skill, {answered: 0, correct: 0, difficulty: 1}]));
     const state = {
       version: MATH_PATH_CONTENT_VERSION,
       seed: String(seed),
       rngState: 0,
       grade,
       phase: "present",
-      route: Array.from({length: ROUTE_LENGTH}, () => rng.pick(SKILLS)),
+      route: Array.from({length: ROUTE_LENGTH}, () => rng.pick(skillList)),
       index: 0,
       current: null,
       related: null,
@@ -156,6 +158,21 @@ function makeProblem(skill, grade, difficulty, rng) {
     right = rng.int(0, maximum);
     op = "×";
     answer = left * right;
+  } else if (skill === "mixed") {
+    const maximum = [5, 9, 12][difficulty - 1];
+    left = rng.int(0, maximum);
+    right = rng.int(0, maximum);
+    const third = rng.int(0, 100);
+    if (rng.int(0, 1) === 0) {
+      op = "×";
+      answer = left * right + third;
+      const choices = answerChoices(answer, rng);
+      return {skill, left, op, right, answer, choices, second: {op: "+", value: third}};
+    }
+    op = "+";
+    answer = left + right * third;
+    const choices = answerChoices(answer, rng);
+    return {skill, left, op, right, answer, choices, second: {op: "×", value: third}};
   } else {
     const maximum = [5, 9, 12][difficulty - 1];
     right = rng.int(1, maximum);
@@ -164,13 +181,13 @@ function makeProblem(skill, grade, difficulty, rng) {
     op = "÷";
   }
   const choices = answerChoices(answer, rng);
-  return {skill, left, op, right, answer, choices};
+  return {skill, left, op, right, answer, choices, second: null};
 }
 
 function makeDifferentProblem(previous, grade, difficulty, rng) {
   for (let count = 0; count < 20; count++) {
     const problem = makeProblem(previous.skill, grade, difficulty, rng);
-    if (`${problem.left}${problem.op}${problem.right}` !== `${previous.left}${previous.op}${previous.right}`) return problem;
+    if (JSON.stringify(problem) !== JSON.stringify(previous)) return problem;
   }
   throw Error("Could not generate a related problem.");
 }
@@ -190,7 +207,8 @@ function workedModel(problem) {
   if (problem.skill === "add") return `${problem.left} + ${problem.right} = ${problem.answer}`;
   if (problem.skill === "subtract") return `${problem.left} − ${problem.right} = ${problem.answer}`;
   if (problem.skill === "multiply") return `${problem.left} groups of ${problem.right} make ${problem.answer}`;
-  return `${problem.left} split into ${problem.right} equal groups makes ${problem.answer}`;
+  if (problem.skill === "divide") return `${problem.left} split into ${problem.right} equal groups makes ${problem.answer}`;
+  return `${problem.left} ${problem.op} ${problem.right}, then ${problem.second.op} ${problem.second.value}, makes ${problem.answer}`;
 }
 
 function starCount(firstTry) {
@@ -200,28 +218,36 @@ function starCount(firstTry) {
 }
 
 function validProblem(problem, grade) {
-  if (!exactKeys(problem, ["skill", "left", "op", "right", "answer", "choices"])) return false;
-  if (!oneOf(problem.skill, SKILLS) || !integer(problem.left, 0, 999) || !integer(problem.right, 0, 999) ||
+  const skills = grade === 3 ? SKILLS : GRADE_4_SKILLS;
+  if (!exactKeys(problem, ["skill", "left", "op", "right", "answer", "choices", "second"])) return false;
+  if (!oneOf(problem.skill, skills) || !integer(problem.left, 0, 999) || !integer(problem.right, 0, 999) ||
       !integer(problem.answer, 0, 99999) || !uniqueNumbers(problem.choices, 0, 99999) ||
       problem.choices.length !== 4 || problem.choices.filter(value => value === problem.answer).length !== 1) return false;
-  if (problem.skill === "add") return problem.op === "+" && problem.left + problem.right === problem.answer;
-  if (problem.skill === "subtract") return problem.op === "−" && problem.left - problem.right === problem.answer;
-  if (problem.skill === "multiply") return problem.op === "×" && problem.left * problem.right === problem.answer;
-  return problem.op === "÷" && problem.right > 0 && problem.left === problem.right * problem.answer;
+  if (problem.skill === "add") return problem.second === null && problem.op === "+" && problem.left + problem.right === problem.answer;
+  if (problem.skill === "subtract") return problem.second === null && problem.op === "−" && problem.left - problem.right === problem.answer;
+  if (problem.skill === "multiply") return problem.second === null && problem.op === "×" && problem.left * problem.right === problem.answer;
+  if (problem.skill === "divide") return problem.second === null && problem.op === "÷" && problem.right > 0 && problem.left === problem.right * problem.answer;
+  if (problem.skill !== "mixed") return false;
+  if (!exactKeys(problem.second, ["op", "value"]) || !oneOf(problem.second.op, ["+", "×"]) ||
+      !integer(problem.second.value, 0, 100)) return false;
+  if (problem.op === "×" && problem.second.op === "+") return problem.left * problem.right + problem.second.value === problem.answer;
+  if (problem.op === "+" && problem.second.op === "×") return problem.left + problem.right * problem.second.value === problem.answer;
+  return false;
 }
 
 function validatePayload(state) {
   if (!exactKeys(state, Object.keys(snapshotShape))) throw Error("Invalid Math Path snapshot.");
+  const skills = state.grade === 3 ? SKILLS : GRADE_4_SKILLS;
   if (state.version !== MATH_PATH_CONTENT_VERSION || typeof state.seed !== "string" ||
       !integer(state.rngState, 0, 0xffffffff) || !oneOf(state.grade, [3, 4]) ||
       !oneOf(state.phase, ["present", "miss-model", "done"]) ||
-      !Array.isArray(state.route) || state.route.length !== ROUTE_LENGTH || !state.route.every(skill => oneOf(skill, SKILLS)) ||
+      !Array.isArray(state.route) || state.route.length !== ROUTE_LENGTH || !state.route.every(skill => oneOf(skill, skills)) ||
       !integer(state.index, 0, ROUTE_LENGTH) || !integer(state.stars, 0, 3) ||
       !integer(state.firstTry, 0, ROUTE_LENGTH) || !integer(state.attempts, 0, 10000) ||
       !integer(state.attemptsForCell, 0, 1000) || !plainObject(state.skills)) {
     throw Error("Invalid Math Path snapshot.");
   }
-  if (!exactKeys(state.skills, SKILLS)) throw Error("Invalid Math Path skill profile.");
+  if (!exactKeys(state.skills, skills)) throw Error("Invalid Math Path skill profile.");
   for (const profile of Object.values(state.skills)) {
     if (!exactKeys(profile, ["answered", "correct", "difficulty"]) ||
         !integer(profile.answered, 0, 10000) || !integer(profile.correct, 0, profile.answered) ||
