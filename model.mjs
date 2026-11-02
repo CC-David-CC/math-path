@@ -9,6 +9,7 @@ import {
   plainObject,
   uniqueNumbers,
 } from "../shared/core.mjs";
+import {makeLearningReport} from "../shared/experience.mjs";
 
 export const MATH_PATH_APP_ID = "math-path";
 export const MATH_PATH_CONTENT_VERSION = "math-path-core-1";
@@ -83,6 +84,24 @@ export class MathPathSession {
 
   get state() {
     return clone(this.#state);
+  }
+
+  get report() {
+    return makeLearningReport({
+      appId: MATH_PATH_APP_ID,
+      audience: `grade-${this.#state.grade}`,
+      phase: this.#state.phase,
+      stars: this.#state.stars,
+      score: this.#state.firstTry * 10 + (this.#state.phase === "done" ? this.#state.stars * 100 : 0),
+      firstTry: this.#state.firstTry,
+      attempts: this.#state.attempts,
+      hintsUsed: 0,
+      remaining: ROUTE_LENGTH - this.#state.index,
+      objectives: this.#state.grade === 3
+        ? ["Practice addition, subtraction, multiplication, and division facts."]
+        : ["Practice number facts and two-step mixed expressions."],
+      details: {skills: clone(this.#state.skills)},
+    });
   }
 
   answer(choice) {
