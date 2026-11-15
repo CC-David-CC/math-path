@@ -8,8 +8,8 @@ import {
   oneOf,
   plainObject,
   uniqueNumbers,
-} from "../shared/core.mjs";
-import {makeLearningReport} from "../shared/experience.mjs";
+} from "@webos/learning-game-core/core";
+import {makeLearningReport} from "@webos/learning-game-core/experience";
 
 export const MATH_PATH_APP_ID = "math-path";
 export const MATH_PATH_CONTENT_VERSION = "math-path-core-2";
