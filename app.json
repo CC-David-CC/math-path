@@ -1,0 +1,15 @@
+{
+  "id": "math-path",
+  "name": "Math Path",
+  "category": "Games",
+  "version": "0.1.0",
+  "description": "Step along the winding arithmetic stepping stone path with mental math, addition, subtraction, multiplication, and mixed operations.",
+  "entry": "index.mjs",
+  "window": {
+    "title": "Math Path",
+    "width": 880,
+    "height": 640,
+    "minWidth": 360,
+    "minHeight": 420
+  }
+}
