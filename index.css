@@ -43,6 +43,7 @@
 
 .path-stats {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -199,59 +200,64 @@
   justify-content: flex-end;
 }
 
-/* Tier 1: Phone (< 768px) */
-@media (max-width: 768px) {
-  .math-path-app {
-    padding: 8px;
-    gap: 8px;
-  }
-  .path-main {
-    flex-direction: column;
-  }
-  .path-route-section {
-    flex: 0 0 auto;
-  }
-  .path-choice-btn {
-    min-height: 48px;
-  }
-  .problem-equation {
-    font-size: 1.6rem;
-    padding: 16px 8px;
-  }
+.math-path-app[data-tier="phone"] {
+  padding: 8px;
+  gap: 8px;
 }
 
-/* Tier 2: 1080p Desktop (1024px to 2559px) */
-@media (min-width: 1024px) and (max-width: 2559px) {
-  .path-route-section {
-    flex: 0 0 380px;
-  }
-  .path-stone-grid {
-    grid-template-columns: repeat(6, 1fr);
-  }
-  .path-workbench {
-    flex: 1;
-  }
+.math-path-app[data-tier="phone"] .path-main {
+  flex-direction: column;
 }
 
-/* Tier 3: 4K UHD (>= 2560px) */
-@media (min-width: 2560px) {
-  :root {
-    --path-touch-target: 56px;
-  }
-  .math-path-app {
-    padding: 24px;
-    gap: 20px;
-    font-size: 1.3rem;
-  }
-  .path-title {
-    font-size: 2rem;
-  }
-  .problem-equation {
-    font-size: 2.8rem;
-    padding: 32px 16px;
-  }
-  .path-choice-btn {
-    font-size: 2rem;
-    padding: 18px;
-  }
+.math-path-app[data-tier="phone"] .path-route-section {
+  flex: 0 0 auto;
+}
+
+.math-path-app[data-tier="phone"] .path-stone-grid {
+  grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+}
+
+.math-path-app[data-tier="phone"] .path-choice-btn {
+  min-height: 48px;
+}
+
+.math-path-app[data-tier="phone"] .problem-equation {
+  font-size: 1.6rem;
+  padding: 16px 8px;
+}
+
+.math-path-app[data-tier="desktop"] .path-route-section {
+  flex: 0 0 380px;
+}
+
+.math-path-app[data-tier="desktop"] .path-stone-grid {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.math-path-app[data-tier="desktop"] .path-workbench {
+  flex: 1;
+}
+
+.math-path-app[data-tier="4k"] {
+  --path-touch-target: 56px;
+}
+
+.math-path-app[data-tier="4k"] {
+  padding: 24px;
+  gap: 20px;
+  font-size: 1.3rem;
+}
+
+.math-path-app[data-tier="4k"] .path-title {
+  font-size: 2rem;
+}
+
+.math-path-app[data-tier="4k"] .problem-equation {
+  font-size: 2.8rem;
+  padding: 32px 16px;
+}
+
+.math-path-app[data-tier="4k"] .path-choice-btn {
+  font-size: 2rem;
+  padding: 18px;
 }
