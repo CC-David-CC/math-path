@@ -1,3 +1,4 @@
+import {connectGameFiles} from '@webos/learning-game-core/workspace';
 import {MathPathSession} from './model.mjs';
 import {computeLayout} from './layout.mjs';
 
@@ -190,6 +191,19 @@ export function mount(host, options = {}) {
     renderWorkbench();
   }
 
+  const files = connectGameFiles(host, {
+    header,
+    id: 'math-path',
+    title: 'Math Path',
+    serialize: () => session.encodeSave(),
+    restore(snapshot) {
+      session = MathPathSession.fromSave(snapshot);
+      grade = session.grade;
+      gradeSelect.value = String(grade);
+      render();
+    },
+  });
+
   render();
 
   if (typeof ResizeObserver !== 'undefined' && root.getBoundingClientRect) {
@@ -203,8 +217,11 @@ export function mount(host, options = {}) {
 
   return {
     element: root,
-    session,
+    get session() { return session; },
+    ready: files.ready,
+    requestClose: files.requestClose,
     dispose() {
+      files.dispose?.();
       disposed = true;
       resizeObserver?.disconnect();
       resizeObserver = null;

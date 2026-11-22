@@ -261,3 +261,13 @@
   font-size: 2rem;
   padding: 18px;
 }
+
+.learning-game-files { position: relative; font-size: .9rem; }
+.learning-game-files summary { cursor: pointer; padding: .45rem .6rem; }
+.learning-game-files[open] > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+}
+.learning-game-files button { min-height: 2rem; }
+.learning-game-files [role="status"] { display: block; overflow-wrap: anywhere; }
