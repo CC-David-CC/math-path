@@ -36,7 +36,7 @@ function createElement(host, tag, className, text) {
 }
 
 export function mount(host, options = {}) {
-  const root = createElement(host, 'div', 'math-path-app');
+  const root = createElement(host, 'div', 'window-content math-path-app');
 
   let grade = options.grade || 3;
   let session = new MathPathSession(`path-${Date.now()}`, grade);
